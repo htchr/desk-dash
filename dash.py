@@ -3,11 +3,12 @@
 import datetime
 import gspread
 import sqlite3
-import matplotlib.pyplot as plt
-# import image edditing lib
+from PIL import Image
 
 db = "/Users/jack/Documents/logs/money.db" 
 budget = "/Users/jack/Documents/projects/22-dash/budget.csv"
+bar = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
+background = "/Users/jack/Pictures/background.jpeg"
 
 def total_cat_in_month(cat, year=0, month=0):
     """
@@ -48,23 +49,17 @@ def total_cat_in_month(cat, year=0, month=0):
     con.close()
     return total
 
-def bar(cat):
-    """
-    cat: string of category to plot
-    returns: None
-    """
-    label = [cat]
-    value = [total_cat_in_month(cat)]
-    plt.bar(label, value)
-    plt.show()
+def new_bar(width, height, path=bar):
+    im = Image.new(mode="RGB", size=(width, height))
+    im.save(bar)
 
 # get current food spending from db + google
 # print(total_cat_in_month("food"))
 
-# plot food spending as a bar from 0 to 100% of budget
-bar("food")
+# create new bar chart if background changes
+# new_bar(8808, 100)
 
-# add chart to a copy of desktop background
-# set desktop background to the copy with the chart
-# execut script once an hour (external script)
+# color in bar based on % of budget spent
+# paste bar chart to desktop background
+# update with crontab
 

@@ -5,3 +5,6 @@
 *.pyc
 test.py
 *.csv
+*.jpeg
+*.jpg
+*.png
