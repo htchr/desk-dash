@@ -4,11 +4,14 @@ import datetime
 import gspread
 import sqlite3
 from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 
 db = "/Users/jack/Documents/logs/money.db" 
-budget = "/Users/jack/Documents/projects/22-dash/budget.csv"
+background = "/Users/jack/Pictures/background/background.jpeg"
 bar = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
-background = "/Users/jack/Pictures/background.jpeg"
+menlo = "/Users/jack/Library/Fonts/Menlo-Regular.ttf"
+budget = "/Users/jack/Documents/projects/22-dash/budget.csv"
 
 def total_cat_in_month(cat, year=0, month=0):
     """
@@ -49,25 +52,29 @@ def total_cat_in_month(cat, year=0, month=0):
     con.close()
     return total
 
-def new_bar(width, height, path=bar):
+def new_bar(height, back_path=background, path=bar):
     """
-    width: int of image width
-    height: int of image height
+    back_path: string file path location to desktop background
     path: sting file path location to save the image
     returns: n/a
     """
+    with Image.open(back_path) as back:
+        width = back.size[0]
     im = Image.new(mode="RGB", size=(width, height))
     im.save(path)
 
-def color(current, budget, path=bar):
+def color_bar(current, budget, cat, path=bar):
     """
     current: int / float of current spending
     budget: int of max spending per month
+    cat: string of spending category
     path: string of file path to image
+    returns: n/a
     """
     # settings:
-    bezel = 0.2
-    buffer = 0.95
+    bezel = 0.3
+    buffer = 0.96
+    spacing = 100
     # gradient green to red as current spending reaches budget
     fill = current / budget
     if fill < 0.18:
@@ -83,26 +90,37 @@ def color(current, budget, path=bar):
     else:
         color = (255, 13, 13)
     # color bar chart
-    with Image.open(path) as im:
-        pixels = im.load()
-        width, height = im.size
-        for i in range(int(width*buffer*min(fill, 1))):
-            for j in range(int(height*bezel), int(height*(1-bezel))):
-                pixels[i, j] = color
-        if fill < 1:
-            for i in range(int(width*buffer*fill), int(width*buffer)+1):
-                for j in range(int(height*bezel), int(height*(1-bezel))):
-                    pixels[i, j] = (160, 160, 160)
-        im.save(path)
+    try:
+        with Image.open(path) as im:
+            pixels = im.load()
+            width, height = im.size
+            for i in range(int(width * buffer * min(fill, 1))):
+                for j in range(int(height * bezel), int(height * (1-bezel))):
+                    pixels[i, j] = color
+            if fill < 1:
+                for i in range(int(width * buffer * fill), int(width * buffer)+1):
+                    for j in range(int(height * bezel), int(height * (1-bezel))):
+                        pixels[i, j] = (160, 160, 160)
+            for i in range(int(width * buffer) + 1, width):
+                for j in range(height):
+                    pixels[i, j] = (0, 0, 0)
+            font = ImageFont.truetype(menlo, 75)
+            draw = ImageDraw.Draw(im)
+            draw.text((int(width * buffer + spacing), 0), 
+                      str(current) + cat[0], font=font, fill=(255, 255, 255))
+            im.save(path)
+    except OSError:
+        new_bar(80)
+        color_bar(current, budget, cat)
 
 # get current food spending from db + google
 # print(total_cat_in_month("food"))
 
 # create new bar chart if background changes
-# new_bar(8808, 100)
+# new_bar(8808, 80)
 
 # color in bar based on % of budget spent
-color(100, 500)
+color_bar(483, 500, "food")
 
 # paste bar chart to desktop background
 # update with crontab
