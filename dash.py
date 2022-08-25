@@ -6,6 +6,7 @@ import sqlite3
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
+import subprocess
 
 db = "/Users/jack/Documents/logs/money.db" 
 background = "/Users/jack/Pictures/background/background.jpeg"
@@ -119,7 +120,21 @@ def paste_bar(height, bar_path=bar, back_path=background):
             back.paste(im, (0, height))
         back.save(back_path)
 
-current = total_cat_in_month("food")
-color_bar(current, 500, "food")
-paste_bar(6275)
+def set_background(back_path=background):
+    # source: https://pastebin.com/wHr1pV7k
+    try:
+        SCRIPT = """/usr/bin/osascript<<END
+                 tell application "Finder"
+                 set desktop picture to POSIX file "%s"
+                 end tell
+                 END"""
+        subprocess.Popen(SCRIPT%back_path, shell=True)
+    except:
+        return False
+
+current = int(total_cat_in_month("food"))
+color_bar(current, 600, "food")
+paste_bar(6383)
+# 6380
+set_background()
 
