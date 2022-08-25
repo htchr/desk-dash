@@ -113,15 +113,13 @@ def color_bar(current, budget, cat, path=bar):
         new_bar(80)
         color_bar(current, budget, cat)
 
-# get current food spending from db + google
-# print(total_cat_in_month("food"))
+def paste_bar(height, bar_path=bar, back_path=background):
+    with Image.open(r"{}".format(background)) as back:
+        with Image.open(r"{}".format(bar)) as im:
+            back.paste(im, (0, height))
+        back.save(back_path)
 
-# create new bar chart if background changes
-# new_bar(8808, 80)
-
-# color in bar based on % of budget spent
-color_bar(483, 500, "food")
-
-# paste bar chart to desktop background
-# update with crontab
+current = total_cat_in_month("food")
+color_bar(current, 500, "food")
+paste_bar(6275)
 
