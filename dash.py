@@ -141,7 +141,7 @@ def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
 # get current spending of category for this month
 current = int(total_cat_in_month("food"))
 # fill in bar chart to fit current spending
-color_bar(400, 500, "food", 80)
+color_bar(current, 500, "food", 80)
 # remove old background image
 os.system("rm {}*.jpeg".format(save_path))
 # save new background image
