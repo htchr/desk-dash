@@ -7,9 +7,11 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 import subprocess
+import os
 
 db = "/Users/jack/Documents/logs/money.db" 
-background = "/Users/jack/Pictures/background/background.jpeg"
+back_path = "/Users/jack/Pictures/backgrounds/background.jpeg"
+save_path = "/Users/jack/Pictures/background/"
 bar = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
 menlo = "/Users/jack/Library/Fonts/Menlo-Regular.ttf"
 budget = "/Users/jack/Documents/projects/22-dash/budget.csv"
@@ -53,9 +55,9 @@ def total_cat_in_month(cat, year=0, month=0):
     con.close()
     return total
 
-def new_bar(height, back_path=background, path=bar):
+def new_bar(height, back_path=back_path, path=bar):
     """
-    back_path: string file path location to desktop background
+    back_path: string file path location to desktop back_path
     path: sting file path location to save the image
     returns: n/a
     """
@@ -73,7 +75,7 @@ def color_bar(current, budget, cat, path=bar):
     returns: n/a
     """
     # settings:
-    bezel = 0.3
+    bezel = 0.35
     buffer = 0.96
     spacing = 100
     # gradient green to red as current spending reaches budget
@@ -114,27 +116,18 @@ def color_bar(current, budget, cat, path=bar):
         new_bar(80)
         color_bar(current, budget, cat)
 
-def paste_bar(height, bar_path=bar, back_path=background):
-    with Image.open(r"{}".format(background)) as back:
+def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
+    with Image.open(r"{}".format(back_path)) as back:
         with Image.open(r"{}".format(bar)) as im:
             back.paste(im, (0, height))
-        back.save(back_path)
-
-def set_background(back_path=background):
-    # source: https://pastebin.com/wHr1pV7k
-    try:
-        SCRIPT = """/usr/bin/osascript<<END
-                 tell application "Finder"
-                 set desktop picture to POSIX file "%s"
-                 end tell
-                 END"""
-        subprocess.Popen(SCRIPT%back_path, shell=True)
-    except:
-        return False
+        now = datetime.datetime.now()
+        name = "{}{}{}{}.jpeg".format(now.day, now.hour, now.minute, now.second)
+        back.save(save_path + name)
 
 current = int(total_cat_in_month("food"))
-color_bar(current, 600, "food")
-paste_bar(6383)
-# 6380
-set_background()
+color_bar(current, 500, "food")
+os.system("rm {}*.jpeg".format(save_path))
+paste_bar(6385)
+# 6383 = bottom of mac screen
+# 960 = top of screen
 
