@@ -6,15 +6,13 @@ import sqlite3
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-import subprocess
 import os
 
 db = "/Users/jack/Documents/logs/money.db" 
 back_path = "/Users/jack/Pictures/backgrounds/background.jpeg"
-save_path = "/Users/jack/Pictures/background/"
 bar = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
 menlo = "/Users/jack/Library/Fonts/Menlo-Regular.ttf"
-budget = "/Users/jack/Documents/projects/22-dash/budget.csv"
+save_path = "/Users/jack/Pictures/background/"
 
 def total_cat_in_month(cat, year=0, month=0):
     """
@@ -57,6 +55,8 @@ def total_cat_in_month(cat, year=0, month=0):
 
 def new_bar(height, back_path=back_path, path=bar):
     """
+    save a new canvas for the bar chart
+    ---
     back_path: string file path location to desktop back_path
     path: sting file path location to save the image
     returns: n/a
@@ -66,8 +66,11 @@ def new_bar(height, back_path=back_path, path=bar):
     im = Image.new(mode="RGB", size=(width, height))
     im.save(path)
 
-def color_bar(current, budget, cat, path=bar):
+def color_bar(current, budget, cat, height, path=bar):
     """
+    color in the bar chart according to current spending
+    gradiate from green to red as spending approches budget
+    ---
     current: int / float of current spending
     budget: int of max spending per month
     cat: string of spending category
@@ -113,10 +116,20 @@ def color_bar(current, budget, cat, path=bar):
                       str(current) + cat[0], font=font, fill=(255, 255, 255))
             im.save(path)
     except OSError:
-        new_bar(80)
+        new_bar(height)
         color_bar(current, budget, cat)
 
 def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
+    """
+    open an existing background image
+    paste the bar chart according to the height parameter
+    save as a copy in new directory
+    ---
+    height: int of pixel height to paste the bar on the background
+    bar_path: string of filepath to the barchart jpeg
+    back_path: string of filepath to the background image to copy
+    save_path: string of filepath where to save the new background with barchart
+    """
     with Image.open(r"{}".format(back_path)) as back:
         with Image.open(r"{}".format(bar)) as im:
             back.paste(im, (0, height))
@@ -124,10 +137,14 @@ def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
         name = "{}{}{}{}.jpeg".format(now.day, now.hour, now.minute, now.second)
         back.save(save_path + name)
 
+# get current spending of category for this month
 current = int(total_cat_in_month("food"))
-color_bar(current, 500, "food")
+# fill in bar chart to fit current spending
+color_bar(current, 500, "food", 80)
+# remove old background image
 os.system("rm {}*.jpeg".format(save_path))
-paste_bar(6385)
+# save new background image
 # 6383 = bottom of mac screen
 # 960 = top of screen
+paste_bar(6385)
 
