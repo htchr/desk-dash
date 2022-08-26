@@ -115,9 +115,10 @@ def color_bar(current, budget, cat, height, path=bar):
             draw.text((int(width * buffer + spacing), 0), 
                       str(current) + cat[0], font=font, fill=(255, 255, 255))
             im.save(path)
+    # if bar chart doesn't exist, create it and run again
     except OSError:
         new_bar(height)
-        color_bar(current, budget, cat)
+        color_bar(current, budget, cat, height)
 
 def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
     """
@@ -140,7 +141,7 @@ def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
 # get current spending of category for this month
 current = int(total_cat_in_month("food"))
 # fill in bar chart to fit current spending
-color_bar(current, 500, "food", 80)
+color_bar(400, 500, "food", 80)
 # remove old background image
 os.system("rm {}*.jpeg".format(save_path))
 # save new background image
