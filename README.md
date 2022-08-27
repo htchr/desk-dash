@@ -4,9 +4,9 @@
 Using python and crontab, update my desktop background with a bar chart reflecting this month's current spending in a given category.
 This project takes advantage of my "dolla-dolla" project by assuming all my spending is recorded in Google Sheets and backed up in a local SQLite database.
 
-Crontab (update every 4 hours):
+Crontab (update every hour):
 ```
-0 */4 * * * python /Users/jack/Documents/projects/22-dash/dash.py
+0 * * * * /Users/jack/Documents/projects/22-dash/venv/bin/python3 /Users/jack/Documents/projects/22-dash/dash.py
 ```
 
 The system is set to change the desktop picture every few minutes.
