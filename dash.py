@@ -9,9 +9,9 @@ from PIL import ImageFont
 import os
 
 db = "/Users/jack/Documents/logs/money.db" 
-back_path = "/Users/jack/Pictures/backgrounds/background.jpeg"
-bar = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
 menlo = "/Users/jack/Library/Fonts/Menlo-Regular.ttf"
+back_path = "/Users/jack/Pictures/backgrounds/background.jpeg"
+bar_path = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
 save_path = "/Users/jack/Pictures/background/"
 
 def total_cat_in_month(cat, year=0, month=0):
@@ -53,20 +53,22 @@ def total_cat_in_month(cat, year=0, month=0):
     con.close()
     return total
 
-def new_bar(height, back_path=back_path, path=bar):
+def new_bar(height, back_path=back_path, bar_path=bar_path):
     """
     save a new canvas for the bar chart
+    the width is the same as the background image
     ---
+    height: int of the vertical pixel height of the image
     back_path: string file path location to desktop back_path
-    path: sting file path location to save the image
+    bar_path: sting file path location to save the image
     returns: n/a
     """
     with Image.open(back_path) as back:
         width = back.size[0]
     im = Image.new(mode="RGB", size=(width, height))
-    im.save(path)
+    im.save(bar_path)
 
-def color_bar(current, budget, cat, height, path=bar):
+def color_bar(current, budget, cat, height, bar_path=bar_path):
     """
     color in the bar chart according to current spending
     gradiate from green to red as spending approches budget
@@ -74,7 +76,7 @@ def color_bar(current, budget, cat, height, path=bar):
     current: int / float of current spending
     budget: int of max spending per month
     cat: string of spending category
-    path: string of file path to image
+    bar_path: string of file path to image
     returns: n/a
     """
     # settings:
@@ -97,7 +99,7 @@ def color_bar(current, budget, cat, height, path=bar):
         color = (255, 13, 13)
     # color bar chart
     try:
-        with Image.open(path) as im:
+        with Image.open(bar_path) as im:
             pixels = im.load()
             width, height = im.size
             for i in range(int(width * buffer * min(fill, 1))):
@@ -114,13 +116,13 @@ def color_bar(current, budget, cat, height, path=bar):
             draw = ImageDraw.Draw(im)
             draw.text((int(width * buffer + spacing), 0), 
                       str(current) + cat[0], font=font, fill=(255, 255, 255))
-            im.save(path)
+            im.save(bar_path)
     # if bar chart doesn't exist, create it and run again
     except OSError:
         new_bar(height)
         color_bar(current, budget, cat, height)
 
-def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
+def paste_bar(height, bar_path=bar_path, back_path=back_path, save_path=save_path):
     """
     open an existing background image
     paste the bar chart according to the height parameter
@@ -132,7 +134,7 @@ def paste_bar(height, bar_path=bar, back_path=back_path, save_path=save_path):
     save_path: string of filepath where to save the new background with barchart
     """
     with Image.open(r"{}".format(back_path)) as back:
-        with Image.open(r"{}".format(bar)) as im:
+        with Image.open(r"{}".format(bar_path)) as im:
             back.paste(im, (0, height))
         now = datetime.datetime.now()
         name = "{}{}{}{}.jpeg".format(now.day, now.hour, now.minute, now.second)
