@@ -22,7 +22,7 @@ def total_cat_in_month(cat, year=0, month=0):
     cat: string of category to search for
     year: int of year to search in
     month: int of month to search in
-    returns: float total of all spending of cat in year, month
+    returns: int total of all spending of cat in year, month / None if google api is down
     """
     if year == 0 or month == 0:
         now = datetime.date.today()
@@ -30,16 +30,20 @@ def total_cat_in_month(cat, year=0, month=0):
         month = now.month
     total = 0
     # get total spending of cat from google sheets
-    sa = gspread.service_account()
-    sh = sa.open("money")
-    wks = sh.worksheet("flow")
-    rows = wks.get_all_values()[1:]
-    for r in rows:
-        try: # there may be rows with empty values
-            if int(r[4][:4]) == year and int(r[4][4:6]) == month and r[5].strip() == cat:
-                total += float(r[0])
-        except:
-            continue
+    try:
+        sa = gspread.service_account()
+        sh = sa.open("money")
+        wks = sh.worksheet("flow")
+        rows = wks.get_all_values()[1:]
+        for r in rows:
+            try: # there may be rows with empty values
+                if int(r[4][:4]) == year and int(r[4][4:6]) == month and r[5].strip() == cat:
+                    total += float(r[0])
+            except:
+                continue
+    # if google api is down return None
+    except:
+        return None
     # get total spending of cat from money.db
     con = sqlite3.connect(db)
     cur = con.cursor()
@@ -51,7 +55,7 @@ def total_cat_in_month(cat, year=0, month=0):
     for r in cur.fetchall():
         total += r[1]
     con.close()
-    return total
+    return int(total)
 
 def new_bar(height, back_path=back_path, bar_path=bar_path):
     """
@@ -132,6 +136,7 @@ def paste_bar(height, bar_path=bar_path, back_path=back_path, save_path=save_pat
     bar_path: string of filepath to the barchart jpeg
     back_path: string of filepath to the background image to copy
     save_path: string of filepath where to save the new background with barchart
+    return: n/a
     """
     with Image.open(r"{}".format(back_path)) as back:
         with Image.open(r"{}".format(bar_path)) as im:
@@ -141,13 +146,14 @@ def paste_bar(height, bar_path=bar_path, back_path=back_path, save_path=save_pat
         back.save(save_path + name)
 
 # get current spending of category for this month
-current = int(total_cat_in_month("food"))
-# fill in bar chart to fit current spending
-color_bar(current, 500, "food", 80)
-# remove old background image
-os.system("rm {}*.jpeg".format(save_path))
-# save new background image
-# 6383 = bottom of mac screen
-# 960 = top of screen
-paste_bar(6385)
+current = total_cat_in_month("food")
+if current != None:
+    # fill in bar chart to fit current spending
+    color_bar(current, 500, "food", 80)
+    # remove old background image
+    os.system("rm {}*.jpeg".format(save_path))
+    # save new background image
+    # 6383 = bottom of mac screen
+    # 960 = top of screen
+    paste_bar(6385)
 
