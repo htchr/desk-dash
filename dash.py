@@ -80,6 +80,7 @@ def color_bar(current, budget, cat, height, bar_path=bar_path):
     current: int / float of current spending
     budget: int of max spending per month
     cat: string of spending category
+    height: int for new_bar function
     bar_path: string of file path to image
     returns: n/a
     """
