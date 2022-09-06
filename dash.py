@@ -11,7 +11,6 @@ import os
 db = "/Users/jack/Documents/logs/money.db" 
 menlo = "/Users/jack/Library/Fonts/Menlo-Regular.ttf"
 back_path = "/Users/jack/Pictures/backgrounds/background.jpeg"
-bar_path = "/Users/jack/Documents/projects/22-dash/bar.jpeg"
 save_path = "/Users/jack/Pictures/background/"
 
 def total_cat_in_month(cat, year=0, month=0):
@@ -57,23 +56,28 @@ def total_cat_in_month(cat, year=0, month=0):
     con.close()
     return int(total)
 
-def new_bar(height, back_path=back_path, bar_path=bar_path):
+def cc_spending():
     """
-    save a new canvas for the bar chart
-    the width is the same as the background image
-    ---
-    height: int of the vertical pixel height of the image
-    back_path: string file path location to desktop back_path
-    bar_path: sting file path location to save the image
-    returns: n/a
+    returns: total current spending on my credit card / None
     """
-    with Image.open(back_path) as back:
-        width = back.size[0]
-    im = Image.new(mode="RGB", size=(width, height))
-    im.save(bar_path)
+    try:
+        sa = gspread.service_account()
+        sh = sa.open("money")
+        wks = sh.worksheet("cc")
+        cc = wks.acell("A1").value
+        cc = float(cc)
+        return(int(cc))
+    except:
+        return None
 
 def color_picker(current, budget):
-    # gradient green to red as current spending reaches budget
+    """
+    gradient green to red as current spending reaches budget
+    ---
+    current: int of the current value of category
+    budget: int of max value of category
+    returns: tuple (r, g, b) of color selection
+    """
     fill = current / budget
     if fill < 0.18:
         color = (105, 179, 76)
@@ -89,75 +93,56 @@ def color_picker(current, budget):
         color = (255, 13, 13)
     return color
 
-
-def color_bar(current, budget, cat, height, color, bar_path=bar_path, bezel = 0.35, buffer = 0.96, spacing = 30):
+def color_bar(current, budget, cat, starting_height, bar_height, color, neutral_fill_color = (160, 160, 160), background_color = (0,0,0), back_path=back_path, bezel = 0.35, buffer = 0.96, spacing = 30):
     """
-    color in the bar chart according to current spending
-    gradiate from green to red as spending approches budget
+    draw multiple bar charts across the desktop background
     ---
-    current: int / float of current spending
-    budget: int of max spending per month
-    cat: string of spending category
-    height: int for new_bar function
-    color: tuple of rgb values to fill in the bar chart
-    bar_path: string of file path to image
+    cuurent: int of current value of category
+    budget: int of max value for category
+    cat: string name of category
+    starting_height: int where bar chart should begin (0,0 at top left corner)
+    bar_height: int of the height of the bar chart
+    color: tuple (r, g, b) of the fill color
+    neutral_fill_color: tuple (r, g, b) of the remainer fill color
+    background_color: tuple (r, g, b) of the border area around the bar chart
+    back_path: string filepath for the background template file
+    bezel: float of the percentage reserved for background around the bar chart
+    buffer: float of the percentage of width reserved for text at the end
+    spacing: int of the number of pixels between bar chart and text
     returns: n/a
     """
-    try:
-        with Image.open(bar_path) as im:
-            fill = current / budget
-            pixels = im.load()
-            width, height = im.size
-            # fill in 
+    with Image.open(back_path) as im:
+        pixels = im.load()
+        width, height = im.size
+        for bar in range(len(current)):
+            fill = current[bar] / budget[bar]           
+            # fill in bar background:
+            for i in range(width):
+                for j in range(starting_height[bar], starting_height[bar] + bar_height[bar]):
+                    pixels[i, j] = background_color
+            # fill in bar chart
             for i in range(int(width * buffer * min(fill, 1))):
-                for j in range(int(height * bezel), int(height * (1-bezel))):
-                    pixels[i, j] = color
+                for j in range(starting_height[bar] + int(bar_height[bar] * bezel), 
+                            starting_height[bar] + int(bar_height[bar] * (1-bezel))):
+                    pixels[i, j] = color[bar]
             # fill in remainer as gray
             for i in range(int(width * buffer * fill), int(width * buffer)+1):
-                for j in range(int(height * bezel), int(height * (1-bezel))):
-                    pixels[i, j] = (160, 160, 160)
-            # clear current writing
-            for i in range(int(width * buffer) + 1, width):
-                for j in range(height):
-                    pixels[i, j] = (0, 0, 0)
+                for j in range(starting_height[bar] + int(bar_height[bar] * bezel), 
+                            starting_height[bar] + int(bar_height[bar] * (1-bezel))):
+                    pixels[i, j] = neutral_fill_color
             font = ImageFont.truetype(menlo, 20)
             draw = ImageDraw.Draw(im)
-            draw.text((int(width * buffer + spacing), 0), 
-                      str(current) + cat[0], font=font, fill=(255, 255, 255))
-            im.save(bar_path)
-    # if bar chart doesn't exist, create it and run again
-    except OSError:
-        new_bar(height)
-        color_bar(current, budget, cat, height)
-
-def paste_bar(height, bar_path=bar_path, back_path=back_path, save_path=save_path):
-    """
-    open an existing background image
-    paste the bar chart according to the height parameter
-    save as a copy in new directory
-    ---
-    height: int of pixel height to paste the bar on the background
-    bar_path: string of filepath to the barchart jpeg
-    back_path: string of filepath to the background image to copy
-    save_path: string of filepath where to save the new background with barchart
-    return: n/a
-    """
-    with Image.open(r"{}".format(back_path)) as back:
-        with Image.open(r"{}".format(bar_path)) as im:
-            back.paste(im, (0, height))
+            draw.text((int(width * buffer + spacing), starting_height[bar]),
+                    str(current[bar]) + cat[bar][0], font=font, fill=(255, 255, 255))
+        os.system("rm {}*.jpeg".format(save_path))
         now = datetime.datetime.now()
         name = "{}{}{}{}.jpeg".format(now.day, now.hour, now.minute, now.second)
-        back.save(save_path + name)
+        im.save(save_path + name)
 
-# get current spending of category for this month
-budget = 500
 current = total_cat_in_month("food")
-if current != None:
-    # fill in bar chart to fit current spending
-    color = color_picker(current, budget)
-    color_bar(current, budget, "food", 22, color)
-    # remove old background image
-    os.system("rm {}*.jpeg".format(save_path))
-    # save new background image
-    paste_bar(1942)
+cc = cc_spending()
+if current != None and cc != None:
+    color = color_picker(current, 500)
+    color_bar((current, cc), (500, 1000), ("food", "cc"), 
+              (1942, 1920), (22, 22), (color, (255, 255, 255)))
 
