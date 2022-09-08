@@ -115,13 +115,13 @@ def color_bar(current, budget, cat, starting_height, bar_height, color, neutral_
         pixels = im.load()
         width, height = im.size
         for bar in range(len(current)):
-            fill = current[bar] / budget[bar]           
+            fill = min(current[bar] / budget[bar], 1)
             # fill in bar background:
             for i in range(width):
                 for j in range(starting_height[bar], starting_height[bar] + bar_height[bar]):
                     pixels[i, j] = background_color
             # fill in bar chart
-            for i in range(int(width * buffer * min(fill, 1))):
+            for i in range(int(width * buffer * fill)):
                 for j in range(starting_height[bar] + int(bar_height[bar] * bezel), 
                             starting_height[bar] + int(bar_height[bar] * (1-bezel))):
                     pixels[i, j] = color[bar]
