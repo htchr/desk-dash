@@ -7,6 +7,10 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 import os
+import sys
+dolla = "/Users/jack/Documents/projects/22-dolla/"
+sys.path.append(dolla)
+from money import get_cats
 
 db = "/Users/jack/Documents/logs/money.db" 
 menlo = "/Users/jack/Library/Fonts/Menlo-Regular.ttf"
@@ -28,31 +32,37 @@ def total_cat_in_month(cat, year=0, month=0):
         year = now.year
         month = now.month
     total = 0
+    if cat == "month":
+        cats = get_cats("out")
+    else:
+        cats = [cat]
     # get total spending of cat from google sheets
     try:
         sa = gspread.service_account()
         sh = sa.open("money")
         wks = sh.worksheet("flow")
         rows = wks.get_all_values()[1:]
-        for r in rows:
-            try: # there may be rows with empty values
-                if int(r[4][:4]) == year and int(r[4][4:6]) == month and r[5].strip() == cat:
-                    total += float(r[0])
-            except:
-                continue
+        for c in cats:
+            for r in rows:
+                try: # there may be rows with empty values
+                    if int(r[4][:4]) == year and int(r[4][4:6]) == month and r[5].strip() == c:
+                        total += float(r[0])
+                except:
+                    continue
     # if google api is down return None
     except:
         return None
     # get total spending of cat from money.db
     con = sqlite3.connect(db)
     cur = con.cursor()
-    cur.execute("""SELECT * FROM flow WHERE 
-                   year = ?
-                   AND month = ?
-                   AND cat = ?""",
-                (year, month, cat))
-    for r in cur.fetchall():
-        total += r[1]
+    for c in cats:
+        cur.execute("""SELECT * FROM flow WHERE 
+                       year = ?
+                       AND month = ?
+                       AND cat = ?""",
+                    (year, month, c))
+        for r in cur.fetchall():
+            total += r[1]
     con.close()
     return int(total)
 
@@ -93,56 +103,72 @@ def color_picker(current, budget):
         color = (255, 13, 13)
     return color
 
-def color_bar(current, budget, cat, starting_height, bar_height, color, neutral_fill_color = (160, 160, 160), background_color = (0,0,0), back_path=back_path, bezel = 0.35, buffer = 0.96, spacing = 30):
+def bar(im, pixels, current, budget, cat, starting_height, width, color, 
+        neutral_fill_color=(160,160,160), background_color=(0,0,0), bar_height=22, font_height=20,
+        bezel=0.35, buffer=0.96, spacing=30):
     """
-    draw multiple bar charts across the desktop background
+    draw a bar chart across the desktop
     ---
+    im: image from PIL.Image.open(image_path)
+    pixels: im.load() from PIL
     cuurent: int of current value of category
     budget: int of max value for category
     cat: string name of category
     starting_height: int where bar chart should begin (0,0 at top left corner)
     bar_height: int of the height of the bar chart
+    width: int of the width of the bar chart
     color: tuple (r, g, b) of the fill color
     neutral_fill_color: tuple (r, g, b) of the remainer fill color
     background_color: tuple (r, g, b) of the border area around the bar chart
-    back_path: string filepath for the background template file
-    bezel: float of the percentage reserved for background around the bar chart
-    buffer: float of the percentage of width reserved for text at the end
-    spacing: int of the number of pixels between bar chart and text
+    returns: n/a
+    """
+    fill = min(current / budget, 1)
+    # fill in bar background:
+    for i in range(width):
+        for j in range(starting_height, starting_height + bar_height):
+            pixels[i, j] = background_color
+    # fill in bar chart
+    for i in range(int(width * buffer * fill)):
+        for j in range(starting_height + int(bar_height * bezel), 
+                       starting_height + int(bar_height * (1-bezel))):
+            pixels[i, j] = color
+    # fill in remainer as gray
+    for i in range(int(width * buffer * fill), int(width * buffer)+1):
+        for j in range(starting_height + int(bar_height * bezel), 
+                       starting_height + int(bar_height * (1-bezel))):
+            pixels[i, j] = neutral_fill_color
+    font = ImageFont.truetype(menlo, font_height)
+    draw = ImageDraw.Draw(im)
+    draw.text((int(width * buffer + spacing), starting_height),
+              str(current) + cat[0], font=font, fill=(255, 255, 255))
+
+def draw():
+    """
+    draw multiple functions on the desktop background
+    ---
     returns: n/a
     """
     with Image.open(back_path) as im:
         pixels = im.load()
         width, height = im.size
-        for bar in range(len(current)):
-            fill = min(current[bar] / budget[bar], 1)
-            # fill in bar background:
-            for i in range(width):
-                for j in range(starting_height[bar], starting_height[bar] + bar_height[bar]):
-                    pixels[i, j] = background_color
-            # fill in bar chart
-            for i in range(int(width * buffer * fill)):
-                for j in range(starting_height[bar] + int(bar_height[bar] * bezel), 
-                            starting_height[bar] + int(bar_height[bar] * (1-bezel))):
-                    pixels[i, j] = color[bar]
-            # fill in remainer as gray
-            for i in range(int(width * buffer * fill), int(width * buffer)+1):
-                for j in range(starting_height[bar] + int(bar_height[bar] * bezel), 
-                            starting_height[bar] + int(bar_height[bar] * (1-bezel))):
-                    pixels[i, j] = neutral_fill_color
-            font = ImageFont.truetype(menlo, 20)
-            draw = ImageDraw.Draw(im)
-            draw.text((int(width * buffer + spacing), starting_height[bar]),
-                    str(current[bar]) + cat[bar][0], font=font, fill=(255, 255, 255))
+        # total monthly spending
+        month = total_cat_in_month("month")
+        month_color = color_picker(month, 2000)
+        bar(im, pixels, month, 2000, "month", 1942, width, month_color)
+        # food spending bar chart
+        food = total_cat_in_month("food")
+        food_color = color_picker(food, 500)
+        bar(im, pixels, food, 500, "food", 1920, width, food_color)
+        # cc spending bar chart
+        cc = cc_spending()
+        cc_color = (255, 255, 255)
+        bar(im, pixels, cc, 1000, "cc", 1898, width, cc_color)
+        # marching bars
+        # save image
         os.system("rm {}*.jpeg".format(save_path))
         now = datetime.datetime.now()
         name = "{}{}{}{}.jpeg".format(now.day, now.hour, now.minute, now.second)
         im.save(save_path + name)
 
-current = total_cat_in_month("food")
-cc = cc_spending()
-if current != None and cc != None:
-    color = color_picker(current, 500)
-    color_bar((current, cc), (500, 1000), ("food", "cc"), 
-              (1942, 1920), (22, 22), (color, (255, 255, 255)))
-
+if __name__ == "__main__":
+    draw()
